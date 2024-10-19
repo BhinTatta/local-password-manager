@@ -31,6 +31,12 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "5e26e22b-3318-4fc0-ace9-c31c2fb4619d"
+      }
+    },
+    "owner": "bhintatta"
   }
 }
