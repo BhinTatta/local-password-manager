@@ -52,14 +52,6 @@ const HomeScreen = () => {
         <Text variant="headlineMedium" style={styles.title}>
           Password Manager
         </Text>
-        <Button
-          mode="contained"
-          onPress={() => router.push("/add-update")}
-          style={styles.addButton}
-          icon="plus"
-        >
-          Add New App
-        </Button>
       </Surface>
 
       {apps.length === 0 ? (
