@@ -15,7 +15,7 @@ export default function Layout() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isBiometricSupported, setIsBiometricSupported] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
