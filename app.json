@@ -21,7 +21,10 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.bhintatta.localpasswordmanager",
-      "permissions": ["USE_BIOMETRIC", "USE_FINGERPRINT"]
+      "permissions": [
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -35,7 +38,8 @@
         {
           "faceId": false
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true

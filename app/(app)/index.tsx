@@ -106,10 +106,14 @@ const HomeScreen = () => {
                 )}
                 onPress={() => {
                   // Navigate to the detail page with only appName
+
+                  const detailPageUri = encodeURIComponent(
+                    `/detail-page?appName=${item.appName}`
+                  );
                   router.push({
-                    pathname: "/detail-page",
+                    pathname: "/pin-verification",
                     params: {
-                      appName: item.appName,
+                      redirectTo: detailPageUri,
                     },
                   });
                 }}

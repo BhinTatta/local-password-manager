@@ -1,155 +1,76 @@
 // app/_layout.tsx
-
-import { Stack } from "expo-router";
-import { PaperProvider, MD3LightTheme, Text, Button } from "react-native-paper";
-import { useEffect, useMemo, useState } from "react";
-import { Slot, useRouter } from "expo-router";
+import { Stack, useSegments, useRouter, Redirect } from "expo-router";
+import { useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as LocalAuthentication from "expo-local-authentication";
-import { Keyboard, StyleSheet, View } from "react-native";
-import FooterNavigation from "@/components/Footer-Nav";
 
-const BIOMETRIC_AUTH_KEY = "biometric_auth_enabled";
+const PIN_SETUP_KEY = "pin_setup_completed";
+const PIN_VERIFIED_KEY = "pin_verified";
 
-export default function Layout() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isBiometricSupported, setIsBiometricSupported] = useState(false);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [isKeyboardVisible, setIsKeyboardVisible] = useState(true);
+const IS_SETUP_COMPLETE = "isSetupComplete";
+
+export default function RootLayout() {
+  const segments = useSegments();
   const router = useRouter();
 
-  useEffect(() => {
-    checkBiometricSupport();
-    checkBiometricEnabled();
-  }, []);
-
-  useEffect(() => {
-    const keyboardDidShow = () => setIsKeyboardVisible(false);
-    const keyboardDidHide = () => setIsKeyboardVisible(true);
-
-    const showSubscription = Keyboard.addListener(
-      "keyboardDidShow",
-      keyboardDidShow
-    );
-    const hideSubscription = Keyboard.addListener(
-      "keyboardDidHide",
-      keyboardDidHide
-    );
-
-    return () => {
-      showSubscription.remove();
-      hideSubscription.remove();
-    };
-  }, []);
-
-  const checkBiometricSupport = async () => {
-    const compatible = await LocalAuthentication.hasHardwareAsync();
-    setIsBiometricSupported(compatible);
+  // FOR TESTING THE SIGNUP PROCESS
+  const clearLocalStorage = async () => {
+    try {
+      await AsyncStorage.clear();
+      console.log("Local storage cleared.");
+    } catch (e) {
+      console.error("Failed to clear local storage:", e);
+    }
   };
 
-  const checkBiometricEnabled = async () => {
+  useEffect(() => {
+    clearLocalStorage();
+  }, []);
+  // END FOR TESTING THE SIGNUP PROCESS
+
+  useEffect(() => {
+    checkAuthState();
+  }, [segments[0]]); // React to top-level group changes
+
+  const checkAuthState = async () => {
     try {
-      const enabled = await AsyncStorage.getItem(BIOMETRIC_AUTH_KEY);
-      if (enabled === "true") {
-        authenticateUser();
-      } else {
-        setIsCheckingAuth(false);
-        setIsAuthenticated(true);
+      const pinSetup = await AsyncStorage.getItem(IS_SETUP_COMPLETE);
+
+      const isInAuthGroup = segments[0] === "(auth)";
+      const isInAppGroup = segments[0] === "(app)";
+
+      // If PIN not set up, force to setup screen
+      if (!pinSetup && !isInAuthGroup) {
+        console.log("from app/_layout.tsx");
+        console.log("PIN not set up");
+        console.log("pinSetup:", pinSetup);
+        console.log("isInAuthGroup:", isInAuthGroup);
+        router.replace("/(auth)/set-up-pin");
+        return;
+      }
+
+      // If all auth is complete but still in auth group, redirect to app
+      if (pinSetup === "true" && isInAuthGroup) {
+        console.log("All auth is complete");
+        router.replace("/(app)");
       }
     } catch (error) {
-      console.error("Authentication error:", error);
-      setIsCheckingAuth(false);
+      console.error("Error checking auth state:", error);
     }
   };
-
-  const authenticateUser = async () => {
-    try {
-      const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: "Authenticate to access your passwords",
-        fallbackLabel: "Use passcode",
-        cancelLabel: "Cancel",
-        disableDeviceFallback: false,
-      });
-
-      setIsAuthenticated(result.success);
-      setIsCheckingAuth(false);
-    } catch (error) {
-      console.error("Authentication error:", error);
-      setIsCheckingAuth(false);
-    }
-  };
-
-  const theme = useMemo(
-    () => ({
-      ...MD3LightTheme,
-      colors: {
-        ...MD3LightTheme.colors,
-        // Blue theme
-        primary: "#2196F3",
-        primaryContainer: "#BBDEFB",
-        secondary: "#1976D2",
-        secondaryContainer: "#90CAF9",
-        tertiary: "#0D47A1",
-        tertiaryContainer: "#64B5F6",
-        surface: "#FFFFFF",
-        surfaceVariant: "#F5F5F5",
-        background: "#F5F5F5",
-        error: "#B00020",
-        errorContainer: "#FDECEA",
-        onPrimary: "#FFFFFF",
-        onPrimaryContainer: "#000000",
-        onSecondary: "#FFFFFF",
-        onSecondaryContainer: "#000000",
-        onTertiary: "#FFFFFF",
-        onTertiaryContainer: "#000000",
-        onSurface: "#000000",
-        onSurfaceVariant: "#000000",
-        onError: "#FFFFFF",
-        onErrorContainer: "#000000",
-        outline: "#79747E",
-        surfaceDisabled: "#C4C4C4",
-        onSurfaceDisabled: "#838383",
-        backdrop: "rgba(0, 0, 0, 0.5)",
-      },
-    }),
-    []
-  );
 
   return (
-    <PaperProvider theme={theme}>
-      {isCheckingAuth ? (
-        <View
-          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
-        >
-          <Text>Loading...</Text>
-        </View>
-      ) : !isAuthenticated ? (
-        <View
-          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
-        >
-          <Text>Authentication required</Text>
-          <Text>Please authenticate to access your passwords</Text>
-          <Button onPress={authenticateUser}>Authenticate</Button>
-        </View>
-      ) : (
-        <View style={styles.container}>
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="index" />
-          </Stack>
-          {isKeyboardVisible && <FooterNavigation />}
-        </View>
-      )}
-    </PaperProvider>
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="(app)"
+        options={{
+          headerShown: false,
+          // Prevent direct navigation to app routes
+          // @ts-ignore href is not recognized by TypeScript
+          href: null,
+        }}
+      />
+    </Stack>
+    /******  3cb36b95-1b19-47a2-9a76-61a3ded5c074  *******/
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  centeredContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-});
